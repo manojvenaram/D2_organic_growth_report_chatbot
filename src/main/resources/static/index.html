@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>D2 Organic Growth Report — Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        :root {
+            --bg:#0d0f14; --surface:#13161f; --card:#181c28; --border:#252a38;
+            --accent:#5b8dee; --accent2:#8b5cf6; --green:#10b981; --red:#f43f5e;
+            --amber:#f59e0b; --text:#e2e8f0; --muted:#64748b; --sub:#94a3b8;
+            --hover:rgba(255,255,255,0.04); --chk-bg:#252a38;
+        }
+        body.light {
+            --bg:#f0f2f7; --surface:#ffffff; --card:#f8f9fc; --border:#dde1ec;
+            --accent:#3b73e8; --accent2:#7c3aed; --green:#059669; --red:#e11d48;
+            --amber:#d97706; --text:#0f172a; --muted:#64748b; --sub:#475569;
+            --hover:rgba(0,0,0,0.04); --chk-bg:#e8eaf2;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        html,body { height:100%; overflow:hidden; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background .2s,color .2s; }
+        .navbar { height:54px; flex-shrink:0; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+        .brand  { display:flex; align-items:center; gap:10px; }
+        .brand-icon { width:30px; height:30px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+        .brand-name { font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .nav-right { display:flex; align-items:center; gap:10px; }
+        .nav-badge { font-size:11px; color:var(--muted); background:var(--card); border:1px solid var(--border); padding:3px 10px; border-radius:20px; }
+        .theme-btn { width:34px; height:34px; border-radius:8px; border:1px solid var(--border); background:var(--card); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .15s; }
+        .theme-btn:hover { border-color:var(--accent); }
+        .statusbar { display:none; flex-shrink:0; padding:6px 20px; font-size:12px; font-weight:500; align-items:center; gap:8px; }
+        .statusbar.show { display:flex; }
+        .statusbar.ok  { background:rgba(16,185,129,.08); color:var(--green);  border-bottom:1px solid rgba(16,185,129,.15); }
+        .statusbar.err { background:rgba(244,63,94,.08);  color:var(--red);    border-bottom:1px solid rgba(244,63,94,.15); }
+        .statusbar.info{ background:rgba(91,141,238,.08); color:var(--accent); border-bottom:1px solid rgba(91,141,238,.15); }
+        .tabs { flex-shrink:0; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 20px; gap:2px; }
+        .tab  { padding:11px 18px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; user-select:none; display:flex; align-items:center; gap:6px; }
+        .tab:hover  { color:var(--text); background:var(--hover); }
+        .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+        .tab-page { display:none; flex:1; overflow:hidden; min-height:0; }
+        .tab-page.active { display:flex; }
+        .sidebar { width:268px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+        .sidebar-top { padding:14px 14px 0; flex-shrink:0; }
+        .sidebar-scroll { flex:1; overflow-y:auto; padding:0 14px 14px; }
+        .sidebar-scroll::-webkit-scrollbar { width:3px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .upload-section { padding:12px; background:var(--card); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+        .upload-label { font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px; }
+        .upload-row { display:flex; gap:6px; align-items:center; }
+        .file-input-wrap { flex:1; position:relative; overflow:hidden; }
+        .file-input-wrap input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; }
+        .file-input-face { padding:6px 10px; background:var(--surface); border:1px dashed var(--border); border-radius:7px; font-size:11px; color:var(--muted); text-align:center; cursor:pointer; transition:all .15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .file-input-face:hover { border-color:var(--accent); color:var(--accent); }
+        .filter-section { display:none; }
+        .filter-section.show { display:block; }
+        .section-title { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:14px 0 8px; display:flex; align-items:center; gap:6px; }
+        .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+        .ctrl-select { width:100%; padding:7px 28px 7px 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; outline:none; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; transition:border-color .15s; }
+        .ctrl-select:focus { border-color:var(--accent); }
+        .ctrl-select:disabled { opacity:.35; cursor:not-allowed; }
+        .chk-dropdown { position:relative; width:100%; }
+        .chk-trigger { width:100%; padding:7px 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:6px; user-select:none; transition:border-color .15s; }
+        .chk-trigger:hover:not(.disabled) { border-color:var(--accent); }
+        .chk-trigger.open { border-color:var(--accent); border-radius:8px 8px 0 0; }
+        .chk-trigger.disabled { opacity:.35; cursor:not-allowed; pointer-events:none; }
+        .chk-trigger-label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+        .chk-trigger-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:8px; flex-shrink:0; }
+        .chk-trigger-arrow { color:var(--muted); font-size:10px; flex-shrink:0; transition:transform .15s; }
+        .chk-trigger.open .chk-trigger-arrow { transform:rotate(180deg); }
+        .chk-panel { position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1px solid var(--accent); border-top:none; border-radius:0 0 8px 8px; z-index:200; max-height:220px; display:none; flex-direction:column; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+        .chk-panel.open { display:flex; }
+        .chk-search { padding:7px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+        .chk-search input { width:100%; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:11px; font-family:'Inter',sans-serif; outline:none; }
+        .chk-search input:focus { border-color:var(--accent); }
+        .chk-search input::placeholder { color:var(--muted); }
+        .chk-actions { display:flex; gap:6px; padding:5px 8px; border-bottom:1px solid var(--border); flex-shrink:0; }
+        .chk-act-btn { font-size:10px; font-weight:600; color:var(--accent); cursor:pointer; padding:2px 0; background:none; border:none; font-family:'Inter',sans-serif; }
+        .chk-act-btn:hover { color:var(--text); }
+        .chk-act-sep { color:var(--border); font-size:10px; line-height:1.8; }
+        .chk-list { overflow-y:auto; flex:1; padding:4px 0; }
+        .chk-list::-webkit-scrollbar { width:3px; }
+        .chk-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .chk-optgroup-label { padding:6px 10px 2px; font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+        .chk-item { display:flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer; transition:background .1s; }
+        .chk-item:hover { background:var(--hover); }
+        .chk-item input[type="checkbox"] { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+        .chk-item-label { font-size:12px; color:var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .chk-empty { padding:12px 10px; font-size:12px; color:var(--muted); text-align:center; }
+        .year-range-row { display:flex; align-items:center; gap:8px; }
+        .year-range-row select { flex:1; }
+        .year-sep { font-size:11px; color:var(--muted); flex-shrink:0; font-weight:600; }
+        .chart-type-pills, .stack-mode-pills, .doc-type-pills { display:flex; gap:4px; flex-wrap:wrap; }
+        .pill, .doc-pill { padding:5px 10px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:var(--card); transition:all .15s; user-select:none; }
+        .pill:hover, .doc-pill:hover { border-color:var(--accent); color:var(--accent); }
+        .pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+        .doc-pill.active { background:#06b6d4; border-color:#06b6d4; color:#fff; }
+        .generate-btn { width:100%; padding:10px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:9px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; box-shadow:0 3px 12px rgba(91,141,238,.3); display:flex; align-items:center; justify-content:center; gap:7px; margin-top:16px; }
+        .generate-btn:hover { box-shadow:0 4px 16px rgba(91,141,238,.45); transform:translateY(-1px); }
+        .generate-btn:active { transform:translateY(0); }
+        .content-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+        .chart-section { flex:1; overflow:hidden; padding:16px; display:flex; flex-direction:column; min-height:0; }
+        .chart-card { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; min-height:0; }
+        .chart-top { display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; }
+        .chart-title { font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; color:var(--text); }
+        .chart-sub { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.6; max-width:600px; }
+        .chart-divider { height:1px; background:var(--border); flex-shrink:0; }
+        .chart-body { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; position:relative; }
+        .chart-body canvas { display:none; }
+        .chart-actions { display:flex; gap:6px; }
+        .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:var(--muted); padding:40px; }
+        .empty-icon { width:64px; height:64px; background:var(--card); border:1px solid var(--border); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:4px; }
+        .empty-title { font-size:15px; font-weight:600; color:var(--text); }
+        .empty-sub { font-size:12px; color:var(--muted); max-width:260px; line-height:1.6; }
+        .btn { display:inline-flex; align-items:center; justify-content:center; gap:5px; border:none; border-radius:7px; font-family:'Inter',sans-serif; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap; }
+        .btn-ghost { padding:5px 11px; font-size:11.5px; background:var(--hover); color:var(--sub); border:1px solid var(--border); }
+        .btn-ghost:hover { color:var(--text); border-color:var(--muted); }
+        .btn-primary { padding:7px 18px; font-size:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 2px 8px rgba(91,141,238,.3); }
+        .btn-primary:hover { box-shadow:0 3px 12px rgba(91,141,238,.4); transform:translateY(-1px); }
+        .btn-xs { padding:2px 6px; font-size:10px; height:18px; border-radius:4px; }
+        .btn-green { background:rgba(16,185,129,.12); color:var(--green); border:1px solid rgba(16,185,129,.2); }
+        .btn-red   { background:rgba(244,63,94,.1);  color:var(--red);   border:1px solid rgba(244,63,94,.2); }
+        .compare-layout { display:flex; flex:1; overflow:hidden; min-height:0; min-width:0; }
+        .compare-sidebar { width:272px; min-width:272px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; padding:14px; gap:14px; }
+        .compare-sidebar::-webkit-scrollbar { width:3px; }
+        .compare-sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .compare-content { flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:14px; min-width:0; }
+        .compare-content::-webkit-scrollbar { width:4px; }
+        .compare-content::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+        .s-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+        .s-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+        .s-label { font-size:11px; color:var(--muted); margin-bottom:5px; }
+        .s-val { font-size:22px; font-weight:700; line-height:1.2; }
+        .s-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+        .tbl-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+        .tbl-head { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+        .tbl-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; color:var(--text); }
+        .tbl-hint { font-size:11px; color:var(--muted); }
+        .tbl-scroll { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:12px; }
+        th { padding:8px 12px; text-align:left; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap; background:var(--card); }
+        th.num { text-align:right; }
+        td { padding:9px 12px; border-bottom:1px solid rgba(37,42,56,.4); white-space:nowrap; }
+        td.num { text-align:right; }
+        tr:last-child td { border-bottom:none; }
+        tr.profile-row { cursor:pointer; }
+        tr.profile-row:hover td { background:var(--hover); }
+        tr.grand-total td { border-top:2px solid var(--border); font-weight:700; background:var(--card); }
+        .cmp-chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+        .cmp-chart-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; color:var(--text); margin-bottom:6px; }
+        .cmp-chart-sub { font-size:11px; color:var(--muted); margin-bottom:12px; }
+        .legend { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+        .leg-item { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--sub); }
+        .cmp-chart-wrap { position:relative; width:100%; height:300px; }
+        .site-check-list { display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; }
+        .site-check-list::-webkit-scrollbar { width:3px; }
+        .site-check-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .site-chk-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px; cursor:pointer; transition:background .1s; border:1px solid transparent; }
+        .site-chk-item:hover { background:var(--hover); }
+        .site-chk-item.selected { background:rgba(91,141,238,.08); border-color:rgba(91,141,238,.2); }
+        .site-chk-item input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+        .site-chk-label { font-size:12px; color:var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #spinner { display:none; position:fixed; inset:0; background:rgba(13,15,20,.7); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+        #spinner.on { display:flex; }
+        .spin-ring { width:40px; height:40px; border:3px solid rgba(91,141,238,.15); border-top-color:var(--accent); border-radius:50%; animation:rot .75s linear infinite; }
+        .spin-text { font-size:12px; color:var(--sub); }
+        @keyframes rot { to { transform:rotate(360deg); } }
+        #filterSection { display:none; }
+        #filterSection.show { display:block; }
+        #compareControls { display:none; }
+        #compareControls.show { display:flex; flex-direction:column; gap:14px; }
+
+        /* ── DOWNLOAD REPORT BUTTON ── */
+        .btn-download {
+            padding:6px 14px; font-size:11.5px; font-weight:700;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            color:#fff; border:none; border-radius:7px;
+            cursor:pointer; transition:all .15s;
+            display:none; align-items:center; gap:5px;
+            box-shadow:0 2px 10px rgba(91,141,238,.35);
+            font-family:'Inter',sans-serif;
+        }
+        .btn-download:hover { box-shadow:0 4px 16px rgba(91,141,238,.5); transform:translateY(-1px); }
+        .btn-download:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+        body.light .profile-chart-wrap { background:var(--card)!important; border-color:var(--border)!important; }
+        body.light .chk-panel { box-shadow:0 8px 24px rgba(0,0,0,.1); }
+
+        /* ── AURORA ── */
+        .aurora-wrap { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+        .aurora-wrap::before,.aurora-wrap::after { content:''; position:absolute; border-radius:50%; filter:blur(80px); opacity:.18; animation:auroraFloat 18s ease-in-out infinite; }
+        .aurora-wrap::before { width:70vw; height:60vh; top:-20vh; left:-15vw; background:radial-gradient(ellipse,#5b8dee 0%,#8b5cf6 40%,transparent 70%); animation-duration:20s; }
+        .aurora-wrap::after  { width:60vw; height:55vh; bottom:-20vh; right:-10vw; background:radial-gradient(ellipse,#06b6d4 0%,#5b8dee 40%,transparent 70%); animation-duration:16s; animation-delay:-8s; }
+        .aurora-blob { position:absolute; border-radius:50%; filter:blur(90px); opacity:.12; animation:auroraFloat 22s ease-in-out infinite; }
+        .aurora-blob-1 { width:50vw; height:50vh; top:20vh; left:30vw; background:radial-gradient(ellipse,#a78bfa 0%,#06b6d4 50%,transparent 70%); animation-duration:25s; animation-delay:-4s; }
+        .aurora-blob-2 { width:40vw; height:40vh; top:50vh; left:10vw; background:radial-gradient(ellipse,#10b981 0%,#5b8dee 50%,transparent 70%); animation-duration:19s; animation-delay:-12s; }
+        @keyframes auroraFloat {
+            0%   { transform:translate(0,0) scale(1); }
+            25%  { transform:translate(4vw,-3vh) scale(1.08); }
+            50%  { transform:translate(-3vw,5vh) scale(.95); }
+            75%  { transform:translate(5vw,2vh) scale(1.05); }
+            100% { transform:translate(0,0) scale(1); }
+        }
+        body.light .aurora-wrap::before { opacity:.07; }
+        body.light .aurora-wrap::after  { opacity:.06; }
+        body.light .aurora-blob         { opacity:.05; }
+
+        /* ── PARTICLE NETWORK ── */
+        #particleCanvas { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35; transition:opacity .3s; }
+        body.light #particleCanvas { opacity:.15; }
+        .navbar,.statusbar,.tabs,.tab-page,#spinner { position:relative; z-index:1; }
+
+        /* ── RANK VIEW BUTTON ── */
+        .rank-btn-active { color:var(--accent)!important; border-color:var(--accent)!important; background:rgba(91,141,238,.08)!important; }
+
+        /* ── TOTAL COUNT SUMMARY BAR ── */
+        .chart-total-bar { display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--card); border:1px solid var(--border); border-radius:8px; flex-shrink:0; flex-wrap:wrap; }
+        .chart-total-main { font-size:20px; font-weight:800; color:var(--accent); font-family:'Space Grotesk',sans-serif; line-height:1; }
+        .chart-total-label { font-size:11px; color:var(--muted); font-weight:500; }
+        .chart-total-sep { width:1px; height:28px; background:var(--border); flex-shrink:0; }
+        .chart-total-pill { display:flex; align-items:center; gap:5px; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; }
+        .chart-total-pill.created  { background:rgba(79,142,247,.12); color:#4f8ef7; border:1px solid rgba(79,142,247,.2); }
+        .chart-total-pill.migrated { background:rgba(167,139,250,.12); color:#a78bfa; border:1px solid rgba(167,139,250,.2); }
+        .chart-total-pill-dot { width:7px; height:7px; border-radius:50%; }
+
+        /* ── GROUP DETAILS TABLE ── */
+        .group-detail-table { flex-shrink:0; background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+        .group-detail-header { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:var(--surface); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; }
+        .group-detail-header:hover { background:var(--hover); }
+        .group-detail-title { font-size:11px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; }
+        .group-detail-toggle { font-size:10px; color:var(--muted); transition:transform .2s; }
+        .group-detail-table.collapsed .group-detail-toggle { transform:rotate(-90deg); }
+        .group-detail-table.collapsed .group-detail-body { display:none; }
+        .group-detail-body { overflow-x:auto; }
+        .gd-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+        .gd-table th { padding:6px 10px; text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-bottom:1px solid var(--border); background:var(--card); white-space:nowrap; }
+        .gd-table th.num { text-align:right; }
+        .gd-table td { padding:7px 10px; border-bottom:1px solid rgba(37,42,56,.35); }
+        .gd-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+        .gd-row { cursor:pointer; transition:background .1s; }
+        .gd-row:hover td { background:var(--hover); }
+        .gd-row.selected td { background:rgba(91,141,238,.07); }
+        .gd-row:last-child td { border-bottom:none; }
+        .gd-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; flex-shrink:0; }
+        .gd-name { display:flex; align-items:center; }
+        .gd-bar-cell { min-width:80px; }
+        .gd-bar-wrap { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+        .gd-bar-fill { height:100%; border-radius:3px; transition:width .3s; }
+        .badge-created  { font-size:11px; font-weight:600; padding:3px 14px; border-radius:100px; background:rgba(79,142,247,.15); color:#4f8ef7; display:inline-block; text-align:center; }
+        .badge-migrated { font-size:11px; font-weight:600; padding:3px 14px; border-radius:100px; background:rgba(167,139,250,.15); color:#a78bfa; display:inline-block; text-align:center; }
+
+        /* ── HOVER SYNC: Chart ↔ Filter Panel ── */
+        .gmp-row { transition:background .12s, transform .12s; }
+        .gmp-row.chart-hover {
+            background:rgba(91,141,238,.12) !important;
+            transform:translateX(3px);
+        }
+        .gmp-row.chart-hover .gmp-row-name { color:var(--accent); font-weight:600; }
+        .gmp-row.chart-hover .gmp-row-dot  { transform:scale(1.4); box-shadow:0 0 8px currentColor; }
+        .gmp-row-dot { transition:transform .12s; }
+
+        /* ── INLINE GMP FILTER PANEL ── */
+        .gmp-filter-panel { flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+        .gmp-filter-header { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; background:var(--card); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; }
+        .gmp-filter-header:hover { background:var(--hover); }
+        .gmp-filter-title { font-size:11px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:7px; }
+        .gmp-filter-count { font-size:10px; font-weight:600; padding:1px 7px; border-radius:100px; background:rgba(91,141,238,.12); color:var(--accent); }
+        .gmp-filter-toggle-icon { font-size:10px; color:var(--muted); transition:transform .2s; }
+        .gmp-filter-panel.collapsed .gmp-filter-toggle-icon { transform:rotate(-90deg); }
+        .gmp-filter-body { padding:0; }
+        .gmp-filter-panel.collapsed .gmp-filter-body { display:none; }
+        .gmp-search-row { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border); }
+        .gmp-search-icon { font-size:13px; color:var(--muted); flex-shrink:0; }
+        .gmp-search-input { flex:1; background:transparent; border:none; outline:none; font-family:'Inter',sans-serif; font-size:12px; color:var(--text); }
+        .gmp-search-input::placeholder { color:var(--muted); }
+        .gmp-actions-row { display:flex; align-items:center; gap:6px; padding:5px 12px; border-bottom:1px solid var(--border); background:var(--card); }
+        .gmp-act-btn { font-size:10px; font-weight:600; padding:2px 8px; border-radius:100px; cursor:pointer; border:none; font-family:'Inter',sans-serif; transition:all .15s; }
+        .gmp-act-all  { background:rgba(16,185,129,.1); color:#10b981; border:1px solid rgba(16,185,129,.2); }
+        .gmp-act-all:hover  { background:rgba(16,185,129,.2); }
+        .gmp-act-none { background:rgba(244,63,94,.08); color:#f43f5e; border:1px solid rgba(244,63,94,.18); }
+        .gmp-act-none:hover { background:rgba(244,63,94,.16); }
+        .gmp-sel-count { font-size:10px; color:var(--muted); margin-left:auto; }
+        .gmp-list { max-height:220px; overflow-y:auto; padding:4px 0; }
+        .gmp-list::-webkit-scrollbar { width:3px; }
+        .gmp-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .gmp-row { display:flex; align-items:center; gap:9px; padding:6px 12px; cursor:pointer; transition:background .1s; }
+        .gmp-row:hover { background:var(--hover); }
+        .gmp-row.hidden-series { opacity:.45; }
+        .gmp-row-check { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+        .gmp-row-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .gmp-row-name { flex:1; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .gmp-row-bar-wrap { width:80px; height:6px; background:var(--card); border-radius:3px; overflow:hidden; flex-shrink:0; }
+        /* ── CHATBOT STYLES ── */
+        .chat-layout { display:flex; flex:1; height:calc(100vh - 100px); overflow:hidden; gap:0; }
+        .chat-sidebar { width:290px; min-width:290px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; padding:16px; gap:16px; }
+        .chat-sidebar-section { display:flex; flex-direction:column; gap:8px; }
+        .chat-sidebar-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+        .chat-prompt-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text); cursor:pointer; transition:all .15s; text-align:left; display:flex; align-items:center; gap:8px; }
+        .chat-prompt-card:hover { border-color:var(--accent); background:rgba(91,141,238,0.06); transform:translateX(3px); }
+        .chat-main { flex:1; display:flex; flex-direction:column; background:var(--bg); overflow:hidden; position:relative; min-width:0; }
+        .chat-header { padding:14px 20px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+        .chat-header-title { font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; }
+        .chat-header-status { font-size:11px; color:#10b981; display:flex; align-items:center; gap:5px; font-weight:600; }
+        .chat-header-dot { width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 8px #10b981; }
+        .chat-messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; scroll-behavior:smooth; }
+        .chat-bubble { display:flex; gap:12px; max-width:85%; animation:fadeIn .2s ease-out; }
+        .chat-bubble.user { align-self:flex-end; flex-direction:row-reverse; }
+        .chat-bubble.bot { align-self:flex-start; }
+        .chat-avatar { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); }
+        .chat-bubble.user .chat-avatar { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; }
+        .chat-text { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; font-size:13px; line-height:1.6; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,0.08); position:relative; }
+        .chat-bubble.user .chat-text { background:linear-gradient(135deg,rgba(91,141,238,0.18),rgba(139,92,246,0.18)); border-color:rgba(91,141,238,0.3); }
+        .chat-timestamp { font-size:10px; color:var(--muted); margin-top:6px; text-align:right; }
+        .chat-chips-bar { display:flex; gap:8px; overflow-x:auto; padding:8px 16px; background:var(--surface); border-top:1px solid var(--border); flex-shrink:0; }
+        .chat-chips-bar::-webkit-scrollbar { height:3px; }
+        .chat-chips-bar::-webkit-scrollbar-thumb { background:var(--border); }
+        .chat-chip-btn { white-space:nowrap; font-size:11.5px; font-weight:600; padding:5px 12px; border-radius:100px; background:var(--card); border:1px solid var(--border); color:var(--sub); cursor:pointer; transition:all .15s; font-family:'Inter',sans-serif; }
+        .chat-chip-btn:hover { color:var(--text); border-color:var(--accent); background:rgba(91,141,238,0.08); }
+        .chat-input-area { padding:12px 18px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-shrink:0; }
+        .chat-input { flex:1; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--text); outline:none; font-family:'Inter',sans-serif; transition:border-color .15s; }
+        .chat-input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,141,238,0.2); }
+        .chat-send-btn { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:10px; padding:0 18px; height:40px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
+        .chat-send-btn:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(91,141,238,0.4); }
+        .chat-action-btn { background:rgba(91,141,238,0.12); color:var(--accent); border:1px solid rgba(91,141,238,0.3); border-radius:7px; padding:6px 14px; font-size:11.5px; font-weight:700; cursor:pointer; transition:all .15s; font-family:'Inter',sans-serif; }
+        .chat-action-btn:hover { background:var(--accent); color:#fff; }
+        .chat-table-wrap { overflow-x:auto; margin:10px 0; border:1px solid var(--border); border-radius:8px; }
+        .chat-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .chat-table th { background:var(--card); padding:7px 10px; font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); border-bottom:1px solid var(--border); text-align:left; }
+        .chat-table td { padding:7px 10px; border-bottom:1px solid rgba(37,42,56,0.35); }
+        .chat-code { background:var(--card); padding:2px 6px; border-radius:4px; font-size:11px; color:#38bdf8; font-family:monospace; }
+        .chat-quote { border-left:3px solid var(--accent); padding-left:10px; margin:8px 0; color:var(--muted); font-style:italic; }
+        .typing-dots { display:flex; gap:4px; padding:6px 2px; }
+        .typing-dots span { width:7px; height:7px; background:var(--accent); border-radius:50%; animation:typingDot 1.4s infinite ease-in-out both; }
+        .typing-dots span:nth-child(1) { animation-delay:-0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay:-0.16s; }
+        @keyframes typingDot { 0%,80%,100% { transform:scale(0); opacity:0.3; } 40% { transform:scale(1); opacity:1; } }
+
+        /* Floating Chat Widget */
+        .floating-chat-btn { position:fixed; bottom:22px; right:24px; z-index:900; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:50px; padding:10px 18px; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 4px 20px rgba(91,141,238,0.45); display:flex; align-items:center; gap:8px; transition:all .2s; }
+        .floating-chat-btn:hover { transform:scale(1.04) translateY(-2px); box-shadow:0 6px 24px rgba(91,141,238,0.6); }
+        .floating-chat-drawer { position:fixed; bottom:80px; right:24px; width:420px; height:540px; max-width:calc(100vw - 32px); max-height:calc(100vh - 100px); background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:0 12px 36px rgba(0,0,0,0.4); z-index:901; display:none; flex-direction:column; overflow:hidden; backdrop-filter:blur(8px); animation:slideUp .2s ease-out; }
+        .floating-chat-drawer.open { display:flex; }
+        @keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    </style>
+</head>
+<body>
+
+<div class="aurora-wrap" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+</div>
+<canvas id="particleCanvas" aria-hidden="true"></canvas>
+<div id="spinner"><div class="spin-ring"></div><div class="spin-text">Processing…</div></div>
+
+<nav class="navbar">
+    <div class="brand">
+        <div class="brand-icon">📊</div>
+        <span class="brand-name">D2 Organic Growth Report</span>
+    </div>
+    <div class="nav-right">
+        <span class="nav-badge">Excel Analytics Dashboard</span>
+        <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle light/dark mode">🌙</button>
+    </div>
+</nav>
+<div class="statusbar" id="statusBar"></div>
+<div class="tabs">
+    <div class="tab active" id="tab-chart"   onclick="switchTab('chart')">📈 Chart View</div>
+    <div class="tab"        id="tab-compare" onclick="switchTab('compare')">⚖️ Compare Sites</div>
+    <div class="tab"        id="tab-growth"  onclick="switchTab('growth'); loadGrowthAnalytics();">📈 Growth Analytics</div>
+    <div class="tab"        id="tab-chat"    onclick="switchTab('chat')">🤖 AI Assistant</div>
+</div>
+
+<!-- CHART VIEW -->
+<div class="tab-page active" id="page-chart">
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <div class="upload-section">
+                <div class="upload-label">Data Source</div>
+                <div class="upload-row">
+                    <div class="file-input-wrap">
+                        <div class="file-input-face" id="fileFace">Choose Excel file…</div>
+                        <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="updateFileFace(this)">
+                    </div>
+                    <button class="btn btn-primary" onclick="uploadExcel()" style="padding:6px 12px;font-size:12px;height:32px;">Upload</button>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-scroll">
+            <div id="filterSection">
+                <div class="section-title">Filters</div>
+                
+                <!-- 1. Owning Site -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">Owning Site</div>
+                    <select class="ctrl-select" id="owningSite" onchange="loadCreationProfiles()" disabled>
+                        <option value="">— Select site —</option>
+                    </select>
+                </div>
+
+                <!-- 2. Creation Profile -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">Creation Profile</div>
+                    <div class="chk-dropdown" id="profileDropdown">
+                        <div class="chk-trigger disabled" id="profileTrigger" onclick="toggleDropdown('profile')">
+                            <span class="chk-trigger-label" id="profileTriggerLabel">— Select site first —</span>
+                            <span class="chk-trigger-arrow">▼</span>
+                        </div>
+                        <div class="chk-panel" id="profilePanel">
+                            <div class="chk-search"><input type="text" placeholder="Search profiles…" oninput="filterChkList('profile',this.value)" id="profileSearch"></div>
+                            <div class="chk-actions">
+                                <button class="chk-act-btn" onclick="selectAllChk('profile')">Select all</button>
+                                <span class="chk-act-sep">·</span>
+                                <button class="chk-act-btn" onclick="clearAllChk('profile')">Clear all</button>
+                            </div>
+                            <div class="chk-list" id="profileList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. GMP Group -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">GMP Group</div>
+                    <div class="chk-dropdown" id="gmpDropdown">
+                        <div class="chk-trigger disabled" id="gmpTrigger" onclick="toggleDropdown('gmp')">
+                            <span class="chk-trigger-label" id="gmpTriggerLabel">— Select profile first —</span>
+                            <span class="chk-trigger-arrow">▼</span>
+                        </div>
+                        <div class="chk-panel" id="gmpPanel">
+                            <div class="chk-search"><input type="text" placeholder="Search GMP groups…" oninput="filterChkList('gmp',this.value)" id="gmpSearch"></div>
+                            <div class="chk-actions">
+                                <button class="chk-act-btn" onclick="selectAllChk('gmp')">Select all</button>
+                                <span class="chk-act-sep">·</span>
+                                <button class="chk-act-btn" onclick="clearAllChk('gmp')">Clear all</button>
+                            </div>
+                            <div class="chk-list" id="gmpList"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave empty to include all groups</div>
+                </div>
+
+                <!-- 4. GMP Subgroup -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">GMP Sub Group</div>
+                    <div class="chk-dropdown" id="subgroupDropdown">
+                        <div class="chk-trigger disabled" id="subgroupTrigger" onclick="toggleDropdown('subgroup')">
+                            <span class="chk-trigger-label" id="subgroupTriggerLabel">— Select group first —</span>
+                            <span class="chk-trigger-arrow">▼</span>
+                        </div>
+                        <div class="chk-panel" id="subgroupPanel">
+                            <div class="chk-search"><input type="text" placeholder="Search GMP subgroups…" oninput="filterChkList('subgroup',this.value)" id="subgroupSearch"></div>
+                            <div class="chk-actions">
+                                <button class="chk-act-btn" onclick="selectAllChk('subgroup')">Select all</button>
+                                <span class="chk-act-sep">·</span>
+                                <button class="chk-act-btn" onclick="clearAllChk('subgroup')">Clear all</button>
+                            </div>
+                            <div class="chk-list" id="subgroupList"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave empty to include all sub groups</div>
+                </div>
+
+                <!-- 5. GMP Artifact -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">GMP Artifact</div>
+                    <div class="chk-dropdown" id="artifactDropdown">
+                        <div class="chk-trigger disabled" id="artifactTrigger" onclick="toggleDropdown('artifact')">
+                            <span class="chk-trigger-label" id="artifactTriggerLabel">— Select sub group first —</span>
+                            <span class="chk-trigger-arrow">▼</span>
+                        </div>
+                        <div class="chk-panel" id="artifactPanel">
+                            <div class="chk-search"><input type="text" placeholder="Search GMP artifacts…" oninput="filterChkList('artifact',this.value)" id="artifactSearch"></div>
+                            <div class="chk-actions">
+                                <button class="chk-act-btn" onclick="selectAllChk('artifact')">Select all</button>
+                                <span class="chk-act-sep">·</span>
+                                <button class="chk-act-btn" onclick="clearAllChk('artifact')">Clear all</button>
+                            </div>
+                            <div class="chk-list" id="artifactList"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave empty to include all artifacts</div>
+                </div>
+
+                <div class="section-title">Time Period</div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;">Year Range</div>
+                    <div class="year-range-row">
+                        <select class="ctrl-select" id="yearFrom" onchange="onYearFromChange()"></select>
+                        <span class="year-sep">→</span>
+                        <select class="ctrl-select" id="yearTo" onchange="onYearToChange()"></select>
+                    </div>
+                </div>
+                <div class="section-title">Visualization</div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;">Chart Type</div>
+                    <div class="chart-type-pills">
+                        <div class="pill active" data-val="BAR"     onclick="selectPill(this)">Bar</div>
+                        <div class="pill"        data-val="LINE"    onclick="selectPill(this)">Line</div>
+                        <div class="pill"        data-val="STACKED" onclick="selectPill(this)">Stacked</div>
+                    </div>
+                    <input type="hidden" id="chartType" value="BAR">
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;">
+                        Stack / Color Bars By
+                    </div>
+                    <div class="stack-mode-pills" style="display:flex;gap:4px;flex-wrap:wrap;">
+                        <div class="pill active" data-val="LIFECYCLE" onclick="selectStackPill(this)" title="Stack by Created vs Migrated">
+                            ⚡ Lifecycle
+                        </div>
+                        <div class="pill" data-val="CATEGORY" onclick="selectStackPill(this)" title="Stack by GMP Group Categories">
+                            🏷️ Category
+                        </div>
+                    </div>
+                    <input type="hidden" id="stackMode" value="LIFECYCLE">
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;">
+                        Document Type
+                        <span style="font-size:10px;font-weight:400;margin-left:4px;">— <strong style="color:#06b6d4">Both</strong> stacks Created + Migrated</span>
+                    </div>
+                    <div class="doc-type-pills">
+                        <div class="doc-pill active" data-val="BOTH"     onclick="selectDocPill(this)">Both</div>
+                        <div class="doc-pill"        data-val="CREATED"  onclick="selectDocPill(this)">Created</div>
+                        <div class="doc-pill"        data-val="MIGRATED" onclick="selectDocPill(this)">Migrated</div>
+                    </div>
+                    <input type="hidden" id="docType" value="BOTH">
+                </div>
+                <button class="generate-btn" onclick="generateChart()">▶ Generate Chart</button>
+            </div>
+        </div>
+    </div>
+    <div class="content-area">
+        <div class="chart-section">
+            <div class="chart-card">
+                <div class="chart-top">
+                    <div>
+                        <div class="chart-title">Visualization</div>
+                        <div class="chart-sub" id="chartSub">Upload an Excel file and configure filters on the left to get started.</div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="btn btn-ghost" onclick="resetZoom()">🔍 Reset Zoom</button>
+                        <button class="btn-download" id="downloadReportBtn"
+                            onclick="downloadReport()"
+                            title="Download professional PDF report">
+                            ⬇ Download Report
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-divider"></div>
+                <div class="chart-body" id="chartBody">
+                    <div class="empty" id="emptyState">
+                        <div class="empty-icon">📈</div>
+                        <div class="empty-title">No chart yet</div>
+                        <div class="empty-sub">Upload your Excel file, configure filters on the left panel, then click Generate Chart.</div>
+                    </div>
+                    <canvas id="chartCanvas" style="display:none;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- COMPARE SITES -->
+<div class="tab-page" id="page-compare">
+    <div class="compare-layout">
+        <div class="compare-sidebar">
+            <div id="compareControls">
+                <div>
+                    <div class="section-title" style="margin-top:0;">Sites to Compare</div>
+                    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Select 2 or more sites</div>
+                    <div class="site-check-list" id="compareSiteList"></div>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <button class="btn btn-xs btn-green" onclick="selectAllCompareSites()">✔ All</button>
+                        <button class="btn btn-xs btn-red"   onclick="clearAllCompareSites()">✖ Clear</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title">Year Range</div>
+                    <div class="year-range-row">
+                        <select class="ctrl-select" id="compareYearFrom" onchange="onCmpYearFromChange()"></select>
+                        <span class="year-sep">→</span>
+                        <select class="ctrl-select" id="compareYearTo" onchange="onCmpYearToChange()"></select>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title">Document Type</div>
+                    <div class="doc-type-pills">
+                        <div class="doc-pill active" data-val="BOTH"     onclick="selectCmpDocPill(this)">Both</div>
+                        <div class="doc-pill"        data-val="CREATED"  onclick="selectCmpDocPill(this)">Created</div>
+                        <div class="doc-pill"        data-val="MIGRATED" onclick="selectCmpDocPill(this)">Migrated</div>
+                    </div>
+                    <input type="hidden" id="cmpDocType" value="BOTH">
+                    <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5;">
+                        <strong style="color:#06b6d4">Both</strong> = Created/Import + Migrated combined
+                    </div>
+                </div>
+                <div style="font-size:10px;color:var(--muted);line-height:1.6;padding:8px;background:var(--card);border-radius:8px;border:1px solid var(--border);">
+                    💡 Results show profiles as rows. Click any row to expand GMP group detail.
+                </div>
+                <button class="generate-btn" onclick="runComparison()" style="margin-top:0;">⚖️ Compare Sites</button>
+            </div>
+            <div id="cmpNoData" style="font-size:12px;color:var(--muted);text-align:center;padding:20px 10px;line-height:1.7;">
+                Upload an Excel file first to enable site comparison.
+            </div>
+        </div>
+        <div class="compare-content">
+            <div class="empty" id="compareEmptyState" style="flex:1;">
+                <div class="empty-icon">⚖️</div>
+                <div class="empty-title">No comparison yet</div>
+                <div class="empty-sub">Upload an Excel file, select 2+ sites on the left, then click Compare Sites.</div>
+            </div>
+            <div id="compareResult" style="display:none;flex-direction:column;gap:14px;">
+                <div class="s-cards">
+                    <div class="s-card">
+                        <div class="s-label">Total Documents</div>
+                        <div class="s-val" style="color:var(--accent)" id="cTotalDocs">—</div>
+                        <div class="s-sub">across selected sites &amp; years</div>
+                    </div>
+                    <div class="s-card">
+                        <div class="s-label">Top Site</div>
+                        <div class="s-val" style="color:var(--green)" id="cTopSite">—</div>
+                        <div class="s-sub" id="cTopDocs">—</div>
+                    </div>
+                    <div class="s-card">
+                        <div class="s-label">Profiles Compared</div>
+                        <div class="s-val" style="color:var(--amber)" id="cProfileCount">—</div>
+                        <div class="s-sub">creation profiles</div>
+                    </div>
+                    <div class="s-card">
+                        <div class="s-label">Year Range</div>
+                        <div class="s-val" style="color:var(--sub)" id="cYearRange">—</div>
+                        <div class="s-sub">selected period</div>
+                    </div>
+                    <div class="s-card">
+                        <div class="s-label">Document Type</div>
+                        <div class="s-val" style="color:#06b6d4;font-size:15px;" id="cDocType">—</div>
+                        <div class="s-sub">filter applied</div>
+                    </div>
+                </div>
+                <div class="tbl-card">
+                    <div class="tbl-head">
+                        <div class="tbl-title">Creation Profile → GMP Group Breakdown</div>
+                        <div class="tbl-hint">▶ Click profile row to expand · Bold = leader</div>
+                    </div>
+                    <div class="tbl-scroll" id="compareTableContainer"></div>
+                </div>
+                <div class="cmp-chart-card">
+                    <div class="cmp-chart-title">Creation Profile — Side by Side</div>
+                    <div class="cmp-chart-sub">Each cluster = one Creation Profile across selected sites.</div>
+                    <div class="legend" id="compareLegend"></div>
+                    <div class="cmp-chart-wrap">
+                        <canvas id="compareChart" role="img" aria-label="Grouped bar chart comparing creation profiles across sites"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GROWTH ANALYTICS VIEW -->
+<div class="tab-page" id="page-growth" style="flex-direction:column;overflow-y:auto;padding:18px 24px;gap:18px;">
+
+    <!-- 1. Header Banner -->
+    <div style="background:linear-gradient(135deg, #091e3a 0%, #0d3868 55%, #1e3a8a 100%);border-radius:12px;padding:20px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);">
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:26px;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.2);">
+                📈
+            </div>
+            <div>
+                <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;margin:0;color:#ffffff;line-height:1.2;">
+                    Growth Analytics & Executive Intelligence
+                </h1>
+                <div style="font-size:12px;color:#93c5fd;margin-top:4px;font-weight:500;">
+                    Documentum D2 Life Sciences eDMS Organic Document Volumes
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+            <!-- Doc Type Toggle -->
+            <div style="display:flex;background:rgba(0,0,0,0.3);padding:3px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);">
+                <button class="exec-doc-pill active" data-type="CREATED" onclick="setExecDocType('CREATED')" style="padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:#2563eb;color:#fff;transition:all .15s;">
+                    🌱 Organic Created Only
+                </button>
+                <button class="exec-doc-pill" data-type="BOTH" onclick="setExecDocType('BOTH')" style="padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#94a3b8;transition:all .15s;">
+                    📦 Total (Created + Migrated)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State (When no data uploaded yet) -->
+    <div id="execEmptyState" style="display:none;background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:60px 24px;text-align:center;color:var(--muted);margin-top:10px;">
+        <div style="font-size:48px;margin-bottom:12px;">📊</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">No Growth Analytics Data Yet</div>
+        <div style="font-size:13px;max-width:440px;margin:0 auto;line-height:1.6;">
+            Please select and upload your Excel file from the left sidebar. Once uploaded, this view will automatically display the growth trajectory, YoY changes, and active site breakdown.
+        </div>
+    </div>
+
+    <div id="execContentContainer" style="display:flex;flex-direction:column;gap:18px;">
+    <!-- 2. Top 4 KPI Cards -->
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px;">
+        <!-- Card 1: Baseline -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#3b82f6;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span id="execKpiBaseLabel" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Baseline</span>
+                <span style="font-size:16px;">📁</span>
+            </div>
+            <div id="execKpiBase" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;color:var(--text);">—</div>
+            <div style="font-size:11px;color:var(--muted);">Starting Portfolio Documents</div>
+        </div>
+
+        <!-- Card 2: Current Volume -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#10b981;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span id="execKpiCurrLabel" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Current Volume</span>
+                <span style="font-size:16px;">📈</span>
+            </div>
+            <div id="execKpiCurr" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;color:#10b981;">—</div>
+            <div style="font-size:11px;color:var(--muted);">Current Portfolio Documents</div>
+        </div>
+
+        <!-- Card 3: Overall Growth -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#8b5cf6;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Overall Growth</span>
+                <span style="font-size:16px;">🚀</span>
+            </div>
+            <div id="execKpiOverall" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;color:#8b5cf6;">—</div>
+            <div style="font-size:11px;color:var(--muted);">Compound Growth</div>
+        </div>
+
+        <!-- Card 4: Latest YoY -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#06b6d4;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Latest YoY Growth</span>
+                <span style="font-size:16px;">⚡</span>
+            </div>
+            <div id="execKpiYoy" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;color:#06b6d4;">—</div>
+            <div style="font-size:11px;color:var(--muted);">Year-over-Year</div>
+        </div>
+    </div>
+
+    <!-- 3. Middle Section: YoY Curve + Leadership Insight -->
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;min-height:300px;">
+        <!-- Left: Curve Chart -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);">
+                    📈 Year-over-Year Document Growth
+                </div>
+                <span style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:6px;">
+                    Active Sites Aggregated
+                </span>
+            </div>
+            <div style="flex:1;position:relative;min-height:230px;">
+                <canvas id="execChartCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Right: Leadership Insight -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, #3b82f6, #8b5cf6);"></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:18px;">💡</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);">
+                    Leadership Insight
+                </span>
+            </div>
+            <div>
+                <h3 id="execHeadline" style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:6px;">
+                    Document volume expanded significantly across active sites.
+                </h3>
+                <p id="execSubheadline" style="font-size:12px;color:var(--muted);line-height:1.4;">
+                    Growth reflects strong organic Documentum D2 adoption across plant-level manufacturing lifecycles.
+                </p>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);">
+            <ul id="execBullets" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
+            </ul>
+        </div>
+    </div>
+
+    <!-- 4. Bottom Section: Active Site Growth Overview Table -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:16px;">📊</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);">
+                    Active Site Growth Overview
+                </span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:3px 10px;border-radius:6px;font-weight:600;">
+                Active Sites
+            </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-family:'Inter',sans-serif;">
+                <thead id="execTableHead" style="background:var(--surface);color:var(--muted);border-bottom:1px solid var(--border);">
+                </thead>
+                <tbody id="execTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
+            <span>• Excludes divested sites • Growth calculated against previous year</span>
+            <span style="font-weight:600;color:var(--accent);">Documentum D2 Life Sciences eDMS</span>
+        </div>
+    </div>
+    </div> <!-- end execContentContainer -->
+
+</div>
+
+<!-- AI ASSISTANT VIEW -->
+<div class="tab-page" id="page-chat" style="padding:0;overflow:hidden;flex-direction:row;">
+    <div class="chat-layout" style="width:100%;height:100%;">
+        <!-- Chat Left Sidebar (Prompts Library) -->
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-section">
+                <div class="chat-sidebar-title">⚡ Quick Insights</div>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Summarize the executive growth story')">
+                    <span>📈</span>
+                    <span>Executive Growth Story</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('What is the Created vs Migrated ratio?')">
+                    <span>🌱</span>
+                    <span>Created vs Migrated</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Compare all operating sites')">
+                    <span>⚖️</span>
+                    <span>Compare All Sites</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('What are the top GMP groups?')">
+                    <span>📑</span>
+                    <span>Top GMP Groups</span>
+                </button>
+            </div>
+
+            <div class="chat-sidebar-section">
+                <div class="chat-sidebar-title">🏭 Site Diagnostics</div>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Tell me about Nashik site')">
+                    <span>🏢</span>
+                    <span>Nashik Performance</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Tell me about Chh. Sambhajinagar')">
+                    <span>🏢</span>
+                    <span>Sambhajinagar Overview</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Are there any divested or inactive sites?')">
+                    <span>⚠️</span>
+                    <span>Divested Sites Check</span>
+                </button>
+            </div>
+
+            <div class="chat-sidebar-section" style="margin-top:auto;">
+                <div class="chat-sidebar-title">🛠️ Tools</div>
+                <button class="chat-prompt-card" onclick="exportChat()" style="color:var(--accent);">
+                    <span>📥</span>
+                    <span>Export Transcript (.md)</span>
+                </button>
+                <button class="chat-prompt-card" onclick="clearChatHistory()" style="color:var(--red);">
+                    <span>🗑️</span>
+                    <span>Reset Conversation</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Center/Right Panel -->
+        <div class="chat-main">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-header-title">
+                    <span>🤖</span>
+                    <span>D2 Document Intelligence Assistant</span>
+                    <span style="font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(91,141,238,0.12);color:var(--accent);font-weight:600;">NLQ Engine</span>
+                </div>
+                <div class="chat-header-status">
+                    <span class="chat-header-dot"></span>
+                    <span>Knowledge Base Active</span>
+                </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="chat-messages" id="fullChatMessages">
+                <div class="chat-bubble bot">
+                    <div class="chat-avatar">🤖</div>
+                    <div class="chat-text">
+                        <div class="chat-body-content">
+                            <strong>Welcome to the D2 Document Intelligence Assistant!</strong><br><br>
+                            I analyze your OpenText Documentum D2 Life Sciences eDMS document volumes, organic growth trajectories, site comparisons, and GMP groups in real-time.<br><br>
+                            <em>You can type any question or click one of the quick suggestions below to start!</em>
+                        </div>
+                        <div class="chat-timestamp">Just now</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggestion Chips Bar -->
+            <div class="chat-chips-bar" id="fullChatChips"></div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <input type="text" id="fullChatInput" class="chat-input" placeholder="Ask about growth, site volumes, SOPs, migration ratios, or comparisons…" onkeydown="if(event.key==='Enter')submitChat('full')">
+                <button class="chat-send-btn" onclick="submitChat('full')">
+                    <span>Send</span>
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/upload.js"></script>
+<script src="js/meta.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/growth.js"></script>
+<script src="js/chat.js"></script>
+<script>
+function switchTab(tab) {
+    if (tab === "executive") tab = "growth";
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
+    const tabEl = document.getElementById("tab-" + tab) || document.getElementById("tab-growth");
+    const pageEl = document.getElementById("page-" + tab) || document.getElementById("page-growth");
+    if (tabEl) tabEl.classList.add("active");
+    if (pageEl) pageEl.classList.add("active");
+    if (tab === "chat") {
+        const input = document.getElementById("fullChatInput");
+        if (input) setTimeout(() => input.focus(), 100);
+    }
+}
+function setStatus(msg, type) { const el=document.getElementById("statusBar"); el.textContent=msg; el.className="statusbar show "+type; }
+function updateFileFace(input) { document.getElementById("fileFace").textContent=input.files[0]?input.files[0].name:"Choose Excel file…"; }
+function showPostUploadSections() {
+    document.getElementById("filterSection").classList.add("show");
+    document.getElementById("compareControls").classList.add("show");
+    document.getElementById("cmpNoData").style.display="none";
+}
+function populateYearDropdown(years) {
+    const sorted=Array.from(years).map(Number).sort((a,b)=>a-b);
+    ["yearFrom","yearTo"].forEach(id=>{
+        const sel=document.getElementById(id);
+        sel.innerHTML=sorted.map(y=>`<option value="${y}">${y}</option>`).join("");
+    });
+    document.getElementById("yearFrom").value=sorted[0];
+    document.getElementById("yearTo").value=sorted[sorted.length-1];
+    populateCompareYears(sorted);
+    loadAllSitesForCompare();
+    showPostUploadSections();
+}
+function onYearFromChange(){const f=+document.getElementById("yearFrom").value,t=+document.getElementById("yearTo").value;if(f>t)document.getElementById("yearTo").value=f;}
+function onYearToChange()  {const f=+document.getElementById("yearFrom").value,t=+document.getElementById("yearTo").value;if(t<f)document.getElementById("yearFrom").value=t;}
+function onCmpYearFromChange(){const f=+document.getElementById("compareYearFrom").value,t=+document.getElementById("compareYearTo").value;if(f>t)document.getElementById("compareYearTo").value=f;}
+function onCmpYearToChange()  {const f=+document.getElementById("compareYearFrom").value,t=+document.getElementById("compareYearTo").value;if(t<f)document.getElementById("compareYearFrom").value=t;}
+function getYearRange(a,b){const f=+document.getElementById(a).value,t=+document.getElementById(b).value;const r=[];for(let y=f;y<=t;y++)r.push(y);return r;}
+function selectPill(el){document.querySelectorAll(".chart-type-pills .pill").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("chartType").value=el.dataset.val;}
+function selectStackPill(el){document.querySelectorAll(".stack-mode-pills .pill").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("stackMode").value=el.dataset.val;}
+function selectDocPill(el){document.querySelectorAll(".doc-type-pills .doc-pill").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("docType").value=el.dataset.val;}
+function selectCmpDocPill(el){el.closest(".doc-type-pills").querySelectorAll(".doc-pill").forEach(p=>p.classList.remove("active"));el.classList.add("active");document.getElementById("cmpDocType").value=el.dataset.val;}
+
+const dropdownState={
+    profile:{items:[],selected:new Set()},
+    gmp:{items:[],selected:new Set()},
+    subgroup:{items:[],selected:new Set()},
+    artifact:{items:[],selected:new Set()}
+};
+
+function toggleDropdown(key){
+    const panel=document.getElementById(key+"Panel"),trigger=document.getElementById(key+"Trigger");
+    if(!panel || !trigger) return;
+    const isOpen=panel.classList.contains("open");
+    document.querySelectorAll(".chk-panel.open").forEach(p=>p.classList.remove("open"));
+    document.querySelectorAll(".chk-trigger.open").forEach(t=>t.classList.remove("open"));
+    if(!isOpen){panel.classList.add("open");trigger.classList.add("open");const s=document.getElementById(key+"Search");if(s){s.value="";filterChkList(key,"");s.focus();}}
+}
+document.addEventListener("click",e=>{
+    if(!e.target.closest(".chk-dropdown")){
+        document.querySelectorAll(".chk-panel.open").forEach(p=>p.classList.remove("open"));
+        document.querySelectorAll(".chk-trigger.open").forEach(t=>t.classList.remove("open"));
+    }
+});
+function buildChkList(key,items,grouped){
+    dropdownState[key].items=grouped?items:items.map(v=>({value:v}));
+    dropdownState[key].selected.clear();
+    const lbl=document.getElementById(key+"TriggerLabel");
+    if(lbl) {
+        if(key==="profile") lbl.textContent="— Select profiles —";
+        else if(key==="gmp") lbl.textContent="— All groups (no filter) —";
+        else if(key==="subgroup") lbl.textContent="— All sub groups (no filter) —";
+        else lbl.textContent="— All artifacts (no filter) —";
+    }
+    const b=document.getElementById(key+"TriggerBadge");if(b)b.remove();
+    renderChkList(key,"");
+}
+function renderChkList(key,search){
+    const list=document.getElementById(key+"List");if(!list)return;
+    const state=dropdownState[key],q=search.toLowerCase();
+    let html="";
+    if(state.items.length>0&&state.items[0].group!==undefined){
+        state.items.forEach(grp=>{const f=grp.items.filter(v=>v.toLowerCase().includes(q));if(!f.length)return;html+=`<div class="chk-optgroup-label">${grp.group}</div>`;f.forEach(val=>{html+=chkItem(val,state.selected.has(val),key);});});
+    }else{
+        const f=state.items.map(i=>i.value).filter(v=>v.toLowerCase().includes(q));
+        if(!f.length)html=`<div class="chk-empty">No items found</div>`;
+        else f.forEach(val=>{html+=chkItem(val,state.selected.has(val),key);});
+    }
+    list.innerHTML=html||`<div class="chk-empty">No items found</div>`;
+}
+function chkItem(val,checked,key){return `<label class="chk-item"><input type="checkbox" value="${val}" ${checked?"checked":""} onchange="onChkChange('${key}',this)"><span class="chk-item-label" title="${val}">${val}</span></label>`;}
+function filterChkList(key,val){renderChkList(key,val);}
+function onChkChange(key,cb){
+    if(cb.checked)dropdownState[key].selected.add(cb.value);
+    else dropdownState[key].selected.delete(cb.value);
+    updateChkTrigger(key);
+    if(key==="profile") loadGmpGroups();
+    if(key==="gmp") loadGmpSubgroups();
+    if(key==="subgroup") loadGmpArtifacts();
+}
+
+function getTotalUniqueItems(key) {
+    const state = dropdownState[key];
+    if (!state || !state.items) return 0;
+    const uniqueVals = new Set();
+    state.items.forEach(i => {
+        if (i.group && Array.isArray(i.items)) {
+            i.items.forEach(v => uniqueVals.add(v));
+        } else if (i.value !== undefined) {
+            uniqueVals.add(i.value);
+        }
+    });
+    return uniqueVals.size;
+}
+
+function updateChkTrigger(key){
+    const sel=dropdownState[key].selected,lbl=document.getElementById(key+"TriggerLabel"),trigger=document.getElementById(key+"Trigger");
+    if(!lbl||!trigger)return;
+    const totalItems = getTotalUniqueItems(key);
+    if(sel.size===0){
+        if(key==="profile") lbl.textContent="— Select profiles —";
+        else if(key==="gmp") lbl.textContent="— All groups (no filter) —";
+        else if(key==="subgroup") lbl.textContent="— All sub groups (no filter) —";
+        else lbl.textContent="— All artifacts (no filter) —";
+        const b=document.getElementById(key+"TriggerBadge");if(b)b.remove();
+    }
+    else{
+        const arr=Array.from(sel);
+        lbl.textContent=totalItems>0 ? arr.length+" of "+totalItems+" selected" : (arr.length===1?arr[0]:arr.length+" selected");
+        let b=document.getElementById(key+"TriggerBadge");if(!b){b=document.createElement("span");b.id=key+"TriggerBadge";b.className="chk-trigger-badge";trigger.insertBefore(b,trigger.querySelector(".chk-trigger-arrow"));}b.textContent=arr.length;
+    }
+}
+function selectAllChk(key){
+    const state=dropdownState[key];
+    state.items.forEach(i=>{if(i.group)i.items.forEach(v=>state.selected.add(v));else state.selected.add(i.value);});
+    filterChkList(key,document.getElementById(key+"Search")?.value||"");
+    updateChkTrigger(key);
+    if(key==="profile") loadGmpGroups();
+    if(key==="gmp") loadGmpSubgroups();
+    if(key==="subgroup") loadGmpArtifacts();
+}
+function clearAllChk(key){
+    dropdownState[key].selected.clear();
+    filterChkList(key,document.getElementById(key+"Search")?.value||"");
+    updateChkTrigger(key);
+    if(key==="profile"){ buildChkList("gmp",[],false); resetSubgroupDropdown(); resetArtifactDropdown(); }
+    if(key==="gmp"){ loadGmpSubgroups(); }
+    if(key==="subgroup"){ loadGmpArtifacts(); }
+}
+function getSelectedProfiles() {return Array.from(dropdownState.profile.selected);}
+function getSelectedGmps()     {return Array.from(dropdownState.gmp.selected);}
+function getSelectedSubgroups(){return Array.from(dropdownState.subgroup.selected);}
+function getSelectedArtifacts() {return Array.from(dropdownState.artifact.selected);}
+
+function populateCompareSites(sites){
+    const list=document.getElementById("compareSiteList");
+    list.innerHTML=Array.from(sites).sort().map(s=>`<label class="site-chk-item" id="site-item-${CSS.escape(s)}"><input type="checkbox" value="${s}" onchange="onSiteChkChange(this)"><span class="site-chk-label" title="${s}">${s}</span></label>`).join("");
+}
+function onSiteChkChange(cb){cb.closest(".site-chk-item").classList.toggle("selected",cb.checked);}
+function getSelectedCompareSites(){return Array.from(document.querySelectorAll("#compareSiteList input:checked")).map(c=>c.value);}
+function selectAllCompareSites(){document.querySelectorAll("#compareSiteList input").forEach(c=>{c.checked=true;c.closest(".site-chk-item").classList.add("selected");});}
+function clearAllCompareSites() {document.querySelectorAll("#compareSiteList input").forEach(c=>{c.checked=false;c.closest(".site-chk-item").classList.remove("selected");});}
+function loadAllSitesForCompare(){fetch("/api/meta/owning-sites").then(r=>r.json()).then(s=>populateCompareSites(Array.from(s)));}
+function toggleTheme(){const l=document.body.classList.toggle("light");document.getElementById("themeBtn").textContent=l?"☀️":"🌙";localStorage.setItem("d2report-theme",l?"light":"dark");}
+(function(){if(localStorage.getItem("d2report-theme")==="light"){document.body.classList.add("light");window.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("themeBtn");if(b)b.textContent="☀️";});}})();
+window.addEventListener("DOMContentLoaded", () => {
+    fetch("/api/meta/owning-sites")
+        .then(r => r.json())
+        .then(sites => {
+            if (sites && sites.length > 0) {
+                loadOwningSites();
+                loadYears();
+                setStatus("✅ Data ready (" + sites.length + " sites loaded)", "ok");
+            } else {
+                setStatus("📁 Please choose and upload your Excel file to begin", "info");
+            }
+        })
+        .catch(() => {
+            setStatus("📁 Please choose and upload your Excel file to begin", "info");
+        });
+});
+function showChart(){
+    document.getElementById("emptyState").style.display="none";
+    const c=document.getElementById("chartCanvas");
+    c.style.cssText="display:block;position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%";
+}
+(function(){
+    const canvas=document.getElementById("particleCanvas");if(!canvas)return;
+    const ctx=canvas.getContext("2d");
+    const CFG={count:72,speed:0.4,minR:1.5,maxR:3,linkDist:140,linkW:0.6};
+    let W,H,particles=[],animId=null;
+    function isDark(){return !document.body.classList.contains("light");}
+    function dotColor(){return isDark()?"rgba(91,141,238,0.7)":"rgba(59,111,224,0.5)";}
+    function lineColor(a){return isDark()?"rgba(91,141,238,"+a+")":"rgba(59,111,224,"+a+")";}
+    function Particle(){
+        this.reset=function(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*CFG.speed;this.vy=(Math.random()-.5)*CFG.speed;this.r=CFG.minR+Math.random()*(CFG.maxR-CFG.minR);this.op=0.4+Math.random()*0.6;};
+        this.update=function(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;this.x=Math.max(0,Math.min(W,this.x));this.y=Math.max(0,Math.min(H,this.y));};
+        this.draw=function(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=dotColor();ctx.globalAlpha=this.op;ctx.fill();ctx.globalAlpha=1;};
+        this.reset();
+    }
+    function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+    function init(){resize();particles=[];for(var i=0;i<CFG.count;i++)particles.push(new Particle());}
+    function drawLinks(){for(var i=0;i<particles.length;i++){for(var j=i+1;j<particles.length;j++){var dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<CFG.linkDist){var alpha=(1-d/CFG.linkDist)*0.5;ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=lineColor(alpha);ctx.lineWidth=CFG.linkW;ctx.stroke();}}}}
+    function loop(){ctx.clearRect(0,0,W,H);drawLinks();for(var i=0;i<particles.length;i++){particles[i].update();particles[i].draw();}animId=requestAnimationFrame(loop);}
+    window.addEventListener("resize",resize);
+    document.addEventListener("visibilitychange",function(){if(document.hidden)cancelAnimationFrame(animId);else loop();});
+})();
+</script>
+
+<!-- FLOATING CHAT WIDGET (Accessible from any tab) -->
+<button class="floating-chat-btn" id="floatingChatBtn" onclick="toggleFloatingChat()" title="Open D2 AI Assistant">
+    <span>💬</span>
+    <span>Ask AI Assistant</span>
+</button>
+
+<div class="floating-chat-drawer" id="floatingChatDrawer">
+    <div class="chat-header" style="padding:10px 16px;">
+        <div class="chat-header-title" style="font-size:13px;">
+            <span>🤖</span>
+            <span>D2 AI Assistant</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="switchTab('chat');toggleFloatingChat();" title="Expand to Full Tab" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;">⛶</button>
+            <button onclick="toggleFloatingChat()" title="Close" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;">✕</button>
+        </div>
+    </div>
+    <div class="chat-messages" id="floatChatMessages" style="padding:14px;gap:12px;">
+        <div class="chat-bubble bot">
+            <div class="chat-avatar" style="width:28px;height:28px;font-size:14px;">🤖</div>
+            <div class="chat-text" style="font-size:12px;padding:9px 12px;">
+                <div class="chat-body-content">
+                    Hi! Ask me anything about the document volumes or growth trends while exploring your charts.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="chat-chips-bar" id="floatChatChips" style="padding:6px 12px;"></div>
+    <div class="chat-input-area" style="padding:8px 12px;">
+        <input type="text" id="floatChatInput" class="chat-input" style="padding:8px 12px;font-size:12px;" placeholder="Ask AI Assistant…" onkeydown="if(event.key==='Enter')submitChat('float')">
+        <button class="chat-send-btn" style="height:36px;padding:0 14px;font-size:12px;" onclick="submitChat('float')">➤</button>
+    </div>
+</div>
+</body>
+</html>

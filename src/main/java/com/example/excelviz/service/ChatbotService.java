@@ -149,8 +149,18 @@ public class ChatbotService {
         }
 
         // 7b. Created vs Migrated / Organic Adoption (checked before generic "vs" / "compare")
-        if (isMatch(lower, "created vs migrated", "created vs. migrated", "migrated vs created", "migrated vs. created", "organic vs migrated", "organic adoption", "legacy vs organic")
-                || (lower.contains("ratio") && (lower.contains("migrated") || lower.contains("created") || lower.contains("organic")))) {
+        boolean isCreatedVsMigratedQuery = isMatch(lower, "created", "migrated", "organic", "legacy", "adoption", "cutover")
+                || lower.contains("created vs migrated") || lower.contains("created vs. migrated")
+                || lower.contains("migrated vs created") || lower.contains("migrated vs. created")
+                || lower.contains("organic vs migrated") || lower.contains("legacy vs organic")
+                || (lower.contains("ratio") && (lower.contains("migrated") || lower.contains("created") || lower.contains("organic")));
+
+        boolean hasSpecificIntersection = (matchedSites.size() == 1 && !matchedGroups.isEmpty()) ||
+                                          (matchedSites.size() == 1 && !matchedYears.isEmpty()) ||
+                                          (!matchedGroups.isEmpty() && !matchedYears.isEmpty()) ||
+                                          (!matchedProfiles.isEmpty() && (!matchedGroups.isEmpty() || !matchedSites.isEmpty()));
+
+        if (isCreatedVsMigratedQuery && !hasSpecificIntersection) {
             return handleCreatedVsMigrated(matchedSites, matchedYears, allYears);
         }
 
@@ -179,10 +189,6 @@ public class ChatbotService {
 
         // 11. Multi-Dimensional Filter Intersection
         // (e.g. Site + Group, Site + Year, Group + Year, Site + Profile + Group, etc.)
-        boolean hasSpecificIntersection = (matchedSites.size() == 1 && !matchedGroups.isEmpty()) ||
-                                          (matchedSites.size() == 1 && !matchedYears.isEmpty()) ||
-                                          (!matchedGroups.isEmpty() && !matchedYears.isEmpty()) ||
-                                          (!matchedProfiles.isEmpty() && (!matchedGroups.isEmpty() || !matchedSites.isEmpty()));
         if (hasSpecificIntersection) {
             return handleMultiFilterIntersection(matchedSites, matchedProfiles, matchedGroups, matchedYears, docType, allYears);
         }

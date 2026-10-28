@@ -201,6 +201,7 @@ function executeChatAction(type, payload) {
                     break;
                 }
             }
+        }
     } else if (type === "EXPORT_REPORT") {
         if (typeof downloadReport === "function") {
             downloadReport();

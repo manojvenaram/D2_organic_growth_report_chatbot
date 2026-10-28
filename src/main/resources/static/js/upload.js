@@ -36,3 +36,34 @@ function uploadExcel() {
         document.getElementById("spinner").classList.remove("on");
     });
 }
+
+function loadSampleData() {
+    setStatus("⏳ Loading sample Documentum D2 dataset…", "info");
+    document.getElementById("spinner").classList.add("on");
+
+    fetch("/api/excel/load-sample", {
+        method: "POST"
+    })
+    .then(res => {
+        if (!res.ok) return res.json().then(err => Promise.reject(err.error || JSON.stringify(err)));
+        return res.json();
+    })
+    .then(data => {
+        setStatus("✅ " + (data.message || "Sample data loaded successfully"), "ok");
+        if (typeof showPostUploadSections === "function") showPostUploadSections();
+        loadOwningSites();
+        loadYears();
+        if (typeof loadGrowthAnalytics === "function") {
+            loadGrowthAnalytics();
+        }
+        if (typeof loadChatSuggestions === "function") {
+            loadChatSuggestions();
+        }
+    })
+    .catch(err => {
+        setStatus("❌ Failed: " + err, "err");
+    })
+    .finally(() => {
+        document.getElementById("spinner").classList.remove("on");
+    });
+}

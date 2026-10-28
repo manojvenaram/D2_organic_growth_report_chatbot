@@ -1,0 +1,48 @@
+name: 🚀 Enterprise CI Pipeline (Build, Test & Audit)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: 🧪 Build, Test & Validate Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java JDK 17 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 🔑 Make Maven Wrapper Executable
+        run: chmod +x mvnw
+
+      - name: 🧪 Run Comprehensive Unit & Integration Test Suite
+        run: ./mvnw clean test --batch-mode
+
+      - name: 📦 Build Spring Boot Production Executable JAR
+        run: ./mvnw package -DskipTests=true --batch-mode
+
+      - name: 📊 Upload Test Results & Surefire Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-test-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+      - name: 📦 Upload Build Artifact (JAR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: d2-analytics-application
+          path: target/*.jar
+          retention-days: 14

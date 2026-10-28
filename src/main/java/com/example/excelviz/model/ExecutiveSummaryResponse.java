@@ -56,6 +56,8 @@ public class ExecutiveSummaryResponse {
     public List<String> getBulletInsights() { return bulletInsights; }
     public void setBulletInsights(List<String> bulletInsights) { this.bulletInsights = bulletInsights; }
 
+    public double getCagrPct() { return totalRow != null ? totalRow.getCagrPct() : 0.0; }
+
     public static class YearlyGrowthPoint {
         private int year;
         private int volume;

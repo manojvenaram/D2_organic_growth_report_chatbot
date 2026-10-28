@@ -119,8 +119,20 @@ function appendMessage(sender, text, actionType, actionPayload) {
                     📊 View ${actionPayload} on Dashboard
                 </button>
             </div>`;
+        } else if (actionType === "EXPORT_REPORT") {
+            actionBtnHtml = `<div style="margin-top:10px;">
+                <button class="chat-action-btn" onclick="executeChatAction('${actionType}', '${actionPayload}')">
+                    📥 Download Executive PDF Report
+                </button>
+            </div>`;
         }
     }
+
+    const botToolsHtml = sender === "bot" ? `
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+            <button class="chat-tool-btn" onclick="copyChatBubble(this)" title="Copy answer" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 5px;border-radius:4px;">📋 Copy</button>
+            <button class="chat-tool-btn" onclick="speakChatBubble(this)" title="Listen" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 5px;border-radius:4px;">🔊 Listen</button>
+        </div>` : "";
 
     const msgHtml = `
         <div class="chat-bubble ${sender}">
@@ -128,7 +140,10 @@ function appendMessage(sender, text, actionType, actionPayload) {
             <div class="chat-text">
                 <div class="chat-body-content">${formattedHtml}</div>
                 ${actionBtnHtml}
-                <div class="chat-timestamp">${new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                    <div class="chat-timestamp">${new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+                    ${botToolsHtml}
+                </div>
             </div>
         </div>
     `;
@@ -186,6 +201,12 @@ function executeChatAction(type, payload) {
                     break;
                 }
             }
+    } else if (type === "EXPORT_REPORT") {
+        if (typeof downloadReport === "function") {
+            downloadReport();
+        } else {
+            if (typeof switchTab === "function") switchTab("chart");
+            setTimeout(() => { if (typeof downloadReport === "function") downloadReport(); }, 300);
         }
     }
 }
@@ -291,3 +312,39 @@ function escapeHtml(str) {
     if (!str) return "";
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+
+function copyChatBubble(btn) {
+    const bubble = btn.closest(".chat-text");
+    if (!bubble) return;
+    const content = bubble.querySelector(".chat-body-content");
+    if (!content) return;
+    navigator.clipboard.writeText(content.innerText || content.textContent).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = "✅ Copied!";
+        setTimeout(() => { btn.textContent = orig; }, 1800);
+    }).catch(() => {});
+}
+
+function speakChatBubble(btn) {
+    if (!('speechSynthesis' in window)) {
+        alert("Text-to-speech is not supported in this browser.");
+        return;
+    }
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        btn.textContent = "🔊 Listen";
+        return;
+    }
+    const bubble = btn.closest(".chat-text");
+    if (!bubble) return;
+    const content = bubble.querySelector(".chat-body-content");
+    if (!content) return;
+    const text = (content.innerText || content.textContent).replace(/[*#_`|]/g, " ");
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    btn.textContent = "⏹️ Stop";
+    utterance.onend = () => { btn.textContent = "🔊 Listen"; };
+    utterance.onerror = () => { btn.textContent = "🔊 Listen"; };
+    window.speechSynthesis.speak(utterance);
+}
+

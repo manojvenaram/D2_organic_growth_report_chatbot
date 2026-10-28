@@ -50,4 +50,21 @@ public class ExcelUploadController {
         log.info("Upload complete: {} ({} sites loaded)", name, siteCount);
         return ResponseEntity.ok(Map.of("message", "Excel uploaded and processed successfully (" + siteCount + " sites loaded)"));
     }
+
+    @PostMapping("/load-sample")
+    public ResponseEntity<Map<String, String>> loadSampleExcel() {
+        java.io.File sample = new java.io.File("site_primarygroup_yearwise_Nashik_Artifact 1.xlsx");
+        if (!sample.exists()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Sample dataset file not found on server"));
+        }
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(sample)) {
+            excelParserService.parseExcel(fis, sample.getName());
+            int siteCount = excelCacheService.getOwningSites() != null ? excelCacheService.getOwningSites().size() : 0;
+            log.info("Sample dataset loaded successfully ({} sites)", siteCount);
+            return ResponseEntity.ok(Map.of("message", "Sample Documentum D2 dataset loaded successfully (" + siteCount + " sites active)"));
+        } catch (Exception e) {
+            log.error("Failed to load sample dataset", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to load sample dataset: " + e.getMessage()));
+        }
+    }
 }

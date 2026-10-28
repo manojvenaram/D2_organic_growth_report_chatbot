@@ -385,6 +385,11 @@
                     </div>
                     <button class="btn btn-primary" onclick="uploadExcel()" style="padding:6px 12px;font-size:12px;height:32px;">Upload</button>
                 </div>
+                <div style="margin-top:8px;">
+                    <button type="button" class="btn" onclick="loadSampleData()" style="width:100%;padding:6px 10px;font-size:11px;height:28px;background:rgba(99,102,241,0.09);color:var(--primary);border:1px dashed var(--primary);border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;">
+                        <span>⚡</span><span>Quick Load Demo Data (Nashik & Sambhajinagar)</span>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="sidebar-scroll">
@@ -824,7 +829,7 @@
 <div class="tab-page" id="page-chat" style="padding:0;overflow:hidden;flex-direction:row;">
     <div class="chat-layout" style="width:100%;height:100%;">
         <!-- Chat Left Sidebar (Prompts Library) -->
-        <div class="chat-sidebar">
+        <div class="chat-sidebar" style="overflow-y:auto;">
             <div class="chat-sidebar-section">
                 <div class="chat-sidebar-title">⚡ Quick Insights</div>
                 <button class="chat-prompt-card" onclick="sendSuggestion('Summarize the executive growth story')">
@@ -846,7 +851,27 @@
             </div>
 
             <div class="chat-sidebar-section">
-                <div class="chat-sidebar-title">🏭 Site Diagnostics</div>
+                <div class="chat-sidebar-title">📑 Lifecycles & Artifacts</div>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Show breakdown by creation profile')">
+                    <span>📂</span>
+                    <span>Creation Profiles Breakdown</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('How many SOPs do we have?')">
+                    <span>📋</span>
+                    <span>SOP Documents Count</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Rank top artifacts')">
+                    <span>🏆</span>
+                    <span>Top Artifacts Leaderboard</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Tell me about Validation profile')">
+                    <span>🔬</span>
+                    <span>Validation Profile Overview</span>
+                </button>
+            </div>
+
+            <div class="chat-sidebar-section">
+                <div class="chat-sidebar-title">🏭 Plants & Intersections</div>
                 <button class="chat-prompt-card" onclick="sendSuggestion('Tell me about Nashik site')">
                     <span>🏢</span>
                     <span>Nashik Performance</span>
@@ -855,6 +880,26 @@
                     <span>🏢</span>
                     <span>Sambhajinagar Overview</span>
                 </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Nashik SOP in 2024')">
+                    <span>🎯</span>
+                    <span>Nashik SOP in 2024</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Which year had the highest volume?')">
+                    <span>📅</span>
+                    <span>Peak Volume Year</span>
+                </button>
+            </div>
+
+            <div class="chat-sidebar-section">
+                <div class="chat-sidebar-title">🛡️ GxP Audit & Compliance</div>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Run data integrity audit')">
+                    <span>🛡️</span>
+                    <span>Data Integrity Audit</span>
+                </button>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Tell me about 21 CFR Part 11')">
+                    <span>📜</span>
+                    <span>21 CFR Part 11 Compliance</span>
+                </button>
                 <button class="chat-prompt-card" onclick="sendSuggestion('Are there any divested or inactive sites?')">
                     <span>⚠️</span>
                     <span>Divested Sites Check</span>
@@ -862,7 +907,11 @@
             </div>
 
             <div class="chat-sidebar-section" style="margin-top:auto;">
-                <div class="chat-sidebar-title">🛠️ Tools</div>
+                <div class="chat-sidebar-title">🛠️ Actions & Export</div>
+                <button class="chat-prompt-card" onclick="sendSuggestion('Download PDF report')" style="color:var(--primary);font-weight:600;">
+                    <span>📄</span>
+                    <span>Download Executive PDF</span>
+                </button>
                 <button class="chat-prompt-card" onclick="exportChat()" style="color:var(--accent);">
                     <span>📥</span>
                     <span>Export Transcript (.md)</span>
